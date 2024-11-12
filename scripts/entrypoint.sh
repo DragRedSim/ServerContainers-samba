@@ -106,11 +106,16 @@ if [ ! -f "$INITALIZED" ]; then
   # Create USER ACCOUNTS
   ##
   xIFS=$IFS
-  IFS="\n" #the IFS value determines how Bash loops over strings. By default, it splits on whitespace and newlines.
+  IFS='\n' #the IFS value determines how Bash loops over strings. By default, it splits on whitespace and newlines.
            #Hash values can include whitespace (in the user fields section), which will cause Bash to split there.
            #We override it here to only trigger on newlines, and return it to normal after we're done.
   for I_ACCOUNT in $(env | grep '^ACCOUNT_')
   do
+  echo "start"
+  echo $I_ACCOUNT
+  echo "end"
+  done
+  
     ACCOUNT_NAME=$(echo "$I_ACCOUNT" | cut -d'=' -f1 | sed 's/ACCOUNT_//g' | tr '[:upper:]' '[:lower:]')
     ACCOUNT_PASSWORD=$(echo "$I_ACCOUNT" | sed 's/^[^=]*=//g')
 
