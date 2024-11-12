@@ -15,8 +15,6 @@ You'll find this container sourcecode here:
 
 The container repository will be updated regularly.
 
-This is a dev version from DRS. This text is to be used to ensure the logs are 
-correct and new.
 ################################################################################
 
 
