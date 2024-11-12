@@ -108,11 +108,7 @@ if [ ! -f "$INITALIZED" ]; then
   # Create USER ACCOUNTS
   ##
   for I_ACCOUNT in $(env | grep '^ACCOUNT_')
-  do
-    echo "start"
-    echo $I_ACCOUNT
-    echo "end"
-  
+  do  
     ACCOUNT_NAME=$(echo "$I_ACCOUNT" | cut -d'=' -f1 | sed 's/ACCOUNT_//g' | tr '[:upper:]' '[:lower:]')
     ACCOUNT_PASSWORD=$(echo "$I_ACCOUNT" | sed 's/^[^=]*=//g')
 
