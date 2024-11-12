@@ -105,16 +105,17 @@ if [ ! -f "$INITALIZED" ]; then
   ##
   # Create USER ACCOUNTS
   ##
-  for I_ACCOUNT in "$(env | grep '^ACCOUNT_')" 
-  # quoted to signify that we want the entire matching line as an element
-  # without this, if there is a space in the string value (which can happen with the output of create-hash.sh), 
-  # Bash will treat the end of the whitespace as the start of a new element to loop over
+  xIFS=$IFS
+  IFS="\n" #the IFS value determines how Bash loops over strings. By default, it splits on whitespace and newlines.
+           #Hash values can include whitespace (in the user fields section), which will cause Bash to split there.
+           #We override it here to only trigger on newlines, and return it to normal after we're done.
+  for I_ACCOUNT in $(env | grep '^ACCOUNT_')
   do
     ACCOUNT_NAME=$(echo "$I_ACCOUNT" | cut -d'=' -f1 | sed 's/ACCOUNT_//g' | tr '[:upper:]' '[:lower:]')
     ACCOUNT_PASSWORD=$(echo "$I_ACCOUNT" | sed 's/^[^=]*=//g')
 
     ACCOUNT_UID=$(env | grep '^UID_'"$ACCOUNT_NAME" | sed 's/^[^=]*=//g')
-    #Hash check comparison: take password, if it starts with the username:userID: and ends in a colon, grep will return 0, else 1; save return value
+    #Hash check comparison: take string, if it starts with the username:userID: and ends in a colon, grep will return 0, else 1; save return value
     #This check can be made more accurate by extending the regex to match more of the smbpasswd format.
     PASS_IS_HASH=$(echo "$ACCOUNT_PASSWORD" | grep '^'"$ACCOUNT_NAME"':[0-9]*:.*:$' >/dev/null 2>/dev/null; echo $?)
 
@@ -173,7 +174,7 @@ if [ ! -f "$INITALIZED" ]; then
   ##
   # Add USER ACCOUNTS to GROUPS
   ##
-  for I_ACCOUNT in "$(env | grep '^ACCOUNT_')"
+  for I_ACCOUNT in $(env | grep '^ACCOUNT_')
   do
     ACCOUNT_NAME=$(echo "$I_ACCOUNT" | cut -d'=' -f1 | sed 's/ACCOUNT_//g' | tr '[:upper:]' '[:lower:]')
 
@@ -187,6 +188,8 @@ if [ ! -f "$INITALIZED" ]; then
     unset $(echo "$I_ACCOUNT" | cut -d'=' -f1)
   done
 
+  IFS=$xIFS
+  unset xIFS
   [ ! -z ${FAIL_FAST+x} ] && set +e
   # FAIL FAST END
 
