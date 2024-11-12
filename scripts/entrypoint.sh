@@ -105,26 +105,61 @@ if [ ! -f "$INITALIZED" ]; then
   ##
   # Create USER ACCOUNTS
   ##
-  for I_ACCOUNT in $(env | grep '^ACCOUNT_')
+  for I_ACCOUNT in "$(env | grep '^ACCOUNT_')" 
+  # quoted to signify that we want the entire matching line as an element
+  # without this, if there is a space in the string value (which can happen with the output of create-hash.sh), 
+  # Bash will treat the end of the whitespace as the start of a new element to loop over
   do
     ACCOUNT_NAME=$(echo "$I_ACCOUNT" | cut -d'=' -f1 | sed 's/ACCOUNT_//g' | tr '[:upper:]' '[:lower:]')
     ACCOUNT_PASSWORD=$(echo "$I_ACCOUNT" | sed 's/^[^=]*=//g')
 
     ACCOUNT_UID=$(env | grep '^UID_'"$ACCOUNT_NAME" | sed 's/^[^=]*=//g')
+    #Hash check comparison: take password, if it starts with the username:userID: and ends in a colon, grep will return 0, else 1; save return value
+    #This check can be made more accurate by extending the regex to match more of the smbpasswd format.
+    PASS_IS_HASH=$(echo "$ACCOUNT_PASSWORD" | grep '^'"$ACCOUNT_NAME"':[0-9]*:.*:$' >/dev/null 2>/dev/null; echo $?)
 
+    if [ $PASS_IS_HASH -eq 0 ] 2>/dev/null
+    then
+      echo ">> ACCOUNT: found SMB Password HASH instead of plain-text password"
+      if [ -z "$ACCOUNT_UID" ] 2>/dev/null
+      then
+        ACCOUNT_UID=$(echo "$ACCOUNT_PASSWORD" | cut -d":" -f2 )
+        #we can assume that this is a number, since the part of the regex tested against for the user ID will only match digits or an empty string here.
+        if [ -z "$ACCOUNT_UID" ] 2>/dev/null
+        then
+          echo ">> ACCOUNT: For $ACCOUNT_NAME: Password hash contained no UID, and no UID explicitly set."
+        fi
+        echo ">> ACCOUNT: UID assigned from password hash for account $ACCOUNT_NAME."
+      else
+        if [ "$ACCOUNT_UID" -gt 0 ] 2>/dev/null
+        then
+          echo ">> ACCOUNT: Both SMB password hash and explicit UID setting for the account $ACCOUNT_NAME were found."
+          echo ">> ACCOUNT: Specified UID will be used instead of that in hash."
+        fi
+      fi
+    fi
+    
     if [ "$ACCOUNT_UID" -gt 0 ] 2>/dev/null
     then
       echo ">> ACCOUNT: adding account: $ACCOUNT_NAME with UID: $ACCOUNT_UID"
       adduser -D -H -u "$ACCOUNT_UID" -s /bin/false "$ACCOUNT_NAME"
     else
-      echo ">> ACCOUNT: adding account: $ACCOUNT_NAME"
-      adduser -D -H -s /bin/false "$ACCOUNT_NAME"
+      if [ "$ACCOUNT_UID" -eq 0 ] 2>/dev/null
+      then 
+        echo ">> ACCOUNT: ==============================================================================="
+        echo ">> ACCOUNT: WARNING: you are attempting to add an SMB account aligned to the root user ID."
+        echo ">> ACCOUNT: This will not add a new Unix user, and will likely fail to create a Samba user."
+        echo ">> ACCOUNT: Take extreme caution when applying this configuration."
+        echo ">> ACCOUNT: ==============================================================================="
+      else
+        echo ">> ACCOUNT: adding account: $ACCOUNT_NAME"
+        adduser -D -H -s /bin/false "$ACCOUNT_NAME"
+      fi
     fi
     smbpasswd -a -n "$ACCOUNT_NAME"
 
-    if echo "$ACCOUNT_PASSWORD" | grep ':$' | grep '^'"$ACCOUNT_NAME"':[0-9]*:'  >/dev/null 2>/dev/null
+    if [ $PASS_IS_HASH -eq 0 ] 2>/dev/null
     then
-      echo ">> ACCOUNT: found SMB Password HASH instead of plain-text password"
       CLEAN_HASH=$(echo "$ACCOUNT_PASSWORD" | sed 's/^.*:[0-9]*://g')
       sed -i 's/\('"$ACCOUNT_NAME"':[0-9]*:\).*/\1'"$CLEAN_HASH"'/g' /var/lib/samba/private/smbpasswd
     else
@@ -138,7 +173,7 @@ if [ ! -f "$INITALIZED" ]; then
   ##
   # Add USER ACCOUNTS to GROUPS
   ##
-  for I_ACCOUNT in $(env | grep '^ACCOUNT_')
+  for I_ACCOUNT in "$(env | grep '^ACCOUNT_')"
   do
     ACCOUNT_NAME=$(echo "$I_ACCOUNT" | cut -d'=' -f1 | sed 's/ACCOUNT_//g' | tr '[:upper:]' '[:lower:]')
 
