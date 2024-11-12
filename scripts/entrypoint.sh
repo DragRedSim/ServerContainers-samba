@@ -17,7 +17,6 @@ The container repository will be updated regularly.
 
 ################################################################################
 
-
 EOF
 
 # clean pids
@@ -31,6 +30,9 @@ if [ ! -f "$INITALIZED" ]; then
 
   cp /container/config/samba/smb.conf /etc/samba/smb.conf
   cp /container/config/avahi/samba.service /etc/avahi/services/samba.service
+  
+  touch /var/lib/private/samba/smbpasswd
+  chmod o-r /var/lib/private/samba/smbpasswd
 
   ##
   # MAIN CONFIGURATION
@@ -129,8 +131,9 @@ if [ ! -f "$INITALIZED" ]; then
         if [ -z "$ACCOUNT_UID" ] 2>/dev/null
         then
           echo ">> ACCOUNT: For $ACCOUNT_NAME: Password hash contained no UID, and no UID explicitly set."
+        else
+          echo ">> ACCOUNT: UID assigned from password hash for account $ACCOUNT_NAME."
         fi
-        echo ">> ACCOUNT: UID assigned from password hash for account $ACCOUNT_NAME."
       else
         if [ "$ACCOUNT_UID" -gt 0 ] 2>/dev/null
         then
