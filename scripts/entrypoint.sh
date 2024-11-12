@@ -15,6 +15,8 @@ You'll find this container sourcecode here:
 
 The container repository will be updated regularly.
 
+This is a dev version from DRS. This text is to be used to ensure the logs are 
+correct and new.
 ################################################################################
 
 
@@ -105,11 +107,6 @@ if [ ! -f "$INITALIZED" ]; then
   ##
   # Create USER ACCOUNTS
   ##
-  xIFS=$IFS
-  IFS=$'\n' #the IFS value determines how sh loops over strings. By default, it splits on whitespace and newlines.
-            #Hash values can include whitespace (in the user fields section), which will cause sh to split there.
-            #We override it here to only trigger on newlines, and return it to normal after we're done.
-  echo $IFS | hexdump
   for I_ACCOUNT in $(env | grep '^ACCOUNT_')
   do
     echo "start"
@@ -193,8 +190,6 @@ if [ ! -f "$INITALIZED" ]; then
     unset $(echo "$I_ACCOUNT" | cut -d'=' -f1)
   done
 
-  IFS=$xIFS
-  unset xIFS
   [ ! -z ${FAIL_FAST+x} ] && set +e
   # FAIL FAST END
 
